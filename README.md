@@ -1,7 +1,7 @@
 # mobilenetv2-ssd_caffe
 MobileNetV2-SSD with Caffe (CPU Inference) Demo  
 ## Show Demo
-![image]()
+![image](https://github.com/yukiwsf/mobilenetv2-ssd_caffe/blob/master/data/result.png)
 ## Reference
 Caffe:  
 https://github.com/BVLC/caffe  
