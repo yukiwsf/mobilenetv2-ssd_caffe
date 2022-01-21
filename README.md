@@ -18,3 +18,8 @@ https://github.com/xxradon/PytorchToCaffe
 ## How to use
 1. Compile Caffe and OpenCV dynamic link library(xxx.so, Ubuntu18.04), then put them into lib directories.
 2. Use CMake to build
+## MobileNetV2-SSD Caffe Pretrained Model
+```
+Link: https://pan.baidu.com/s/1wLkUGZkQXqjmk0NXXPkOpg   
+Password: zl5v   
+```
