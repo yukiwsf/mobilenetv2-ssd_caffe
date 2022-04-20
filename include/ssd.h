@@ -8,23 +8,27 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include "opencv2/core.hpp"
-#include "opencv2/dnn.hpp"
+// #include "opencv2/dnn.hpp"
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui.hpp"
 #include "caffe/caffe.hpp"
 
-#define SSD_INPUT_SIZE 320
-#define NUM_CLASS 21
-#define CONFIDENCE_THRESHOLD 0.01
-#define SCORE_THRESHOLD 0.7
-#define IS_NMS 1
-#define NMS_THRESHOLD 0.5
-#define MAX_DET 100
-#define NUM_STRIDES 6
+constexpr int SSD_INPUT_SIZE = 320, NUM_CLASS = 21, MAX_DET = 100, NUM_STRIDES = 6;
+const float CONFIDENCE_THRESHOLD = 0.01, SCORE_THRESHOLD = 0.5, NMS_THRESHOLD = 0.5;
+const bool IS_NMS = true;
 
-#define MAXIMUM(a, b) (((a) > (b)) ? (a) : (b))
-#define MINIMUM(a, b) (((a) < (b)) ? (a) : (b))
+/* Maximum: int/float/double */
+template<typename T>
+inline T Maximum(T a, T b) {
+    return a > b ? a : b;
+} 
+
+/* Minimum: int/float/double */
+template<typename T>
+inline T Minimum(T a, T b) {
+    return a < b ? a : b;
+} 
 
 /* ssd class name */
 extern const char *clsName[NUM_CLASS];
@@ -45,11 +49,11 @@ struct Prior {
 void CalculatePriorBoxSize(Prior &priorBoxes, std::vector< std::vector<float> > &priorSizes);
 
 /* store object-detection result information */
-typedef struct ObjectDetectionInformation {
+struct ObjInfo {
     int clsId;
     float score;
     cv::Rect bbox;
-} ObjInfo;
+};
 
 /* main ssd class */
 class Detector {

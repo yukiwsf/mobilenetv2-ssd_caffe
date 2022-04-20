@@ -1,5 +1,69 @@
 #include "ssd.h"
 
+void ShellSort(std::vector<cv::Rect>& boxesNew, std::vector<float>& scoresNew) {
+    int i, j, increment;
+    int N = boxesNew.size();
+    cv::Rect boxTmp;
+    float scoreTmp;
+    for(increment = N / 2; increment > 0; increment /= 2)  
+        for(i = increment; i < N; ++i) {  
+            boxTmp = boxesNew[i];
+            scoreTmp = scoresNew[i];
+            for(j = i; j >= increment; j -= increment)
+                if(scoreTmp > scoresNew[j - increment]) {
+                    boxesNew[j] = boxesNew[j - increment];
+                    scoresNew[j] = scoresNew[j - increment];
+                } 
+                else
+                    break;
+            boxesNew[j] = boxTmp;  // put tmp in right position
+            scoresNew[j] = scoreTmp;
+        }
+}
+
+inline float IoU(float x1_box1, float y1_box1, float x2_box1, float y2_box1, float x1_box2, float y1_box2, float x2_box2, float y2_box2) {
+    float inner_x1 = x1_box1 > x1_box2 ? x1_box1 : x1_box2;
+    float inner_y1 = y1_box1 > y1_box2 ? y1_box1 : y1_box2;
+    float inner_x2 = x2_box1 < x2_box2 ? x2_box1 : x2_box2;
+    float inner_y2 = y2_box1 < y2_box2 ? y2_box1 : y2_box2;
+    float inner_h = inner_y2 - inner_y1 + 1;
+    float inner_w = inner_x2 - inner_x1 + 1;
+    if(inner_h <= 0 || inner_w <= 0)
+        return 0;
+    float inner_area = inner_h * inner_w;
+    float h1 = y2_box1 - y1_box1 + 1;
+    float w1 = x2_box1 - x1_box1 + 1;
+    float h2 = y2_box2 - y1_box2 + 1;
+    float w2 = x2_box2 - x1_box2 + 1;
+    float area1 = h1 * w1;
+    float area2 = h2 * w2;
+    float iou = inner_area / (area1 + area2 - inner_area);
+    return iou;
+}
+
+void NMS(std::vector<cv::Rect>& boxesNew, std::vector<float>& scoresNew, float score_threshold, float iou_threshold) {
+    ShellSort(boxesNew, scoresNew);  // descending order
+    int input_num = boxesNew.size();
+    for(int i = 0; i < input_num; ++i) {
+        if(scoresNew[i] < score_threshold)
+            scoresNew[i] = 0;
+        if(scoresNew[i] == 0)
+            continue;
+        if(i == input_num - 1) 
+            break;
+        for(int j = i + 1; j < input_num; ++j) {
+            if(scoresNew[j] == 0)
+                continue;
+            float iou = IoU(boxesNew[i].x, boxesNew[i].y, 
+                            boxesNew[i].x+boxesNew[i].width, boxesNew[i].y+boxesNew[i].height, 
+                            boxesNew[j].x, boxesNew[j].y, 
+                            boxesNew[j].x+boxesNew[j].width, boxesNew[j].y+boxesNew[j].height);
+            if(iou > iou_threshold)
+                scoresNew[j] = 0;
+        }
+    }
+}
+
 const char *clsName[NUM_CLASS] = {"background",
                                   "aeroplane", "bicycle", "bird", "boat",
                                   "bottle", "bus", "car", "cat", "chair",
@@ -7,10 +71,11 @@ const char *clsName[NUM_CLASS] = {"background",
                                   "motorbike", "person", "pottedplant",
                                   "sheep", "sofa", "train", "tvmonitor"};
 
+/* ClampValue: int/float/double */
 template<typename T>
 T ClampValue(T value, T upperLimit, T lowerLimit) {
-    T ret = MAXIMUM(value, lowerLimit);
-    ret = MINIMUM(ret, upperLimit);
+    T ret = Maximum<T>(value, lowerLimit);
+    ret = Minimum<T>(ret, upperLimit);
     return ret;
 }
 
@@ -237,14 +302,14 @@ inline cv::Rect BoxBorderProcess(const cv::Rect &box, const int imgWidth, const 
     int ymin = box.y;
     int xmax = xmin + box.width;
     int ymax = ymin + box.height;
-    xmin = MAXIMUM(0, xmin);
-    xmin = MINIMUM(imgWidth, xmin);
-    ymin = MAXIMUM(0, ymin);
-    ymin = MINIMUM(imgHeight, ymin);
-    xmax = MAXIMUM(0, xmax);
-    xmax = MINIMUM(imgWidth, xmax);
-    ymax = MAXIMUM(0, ymax);
-    ymax = MINIMUM(imgHeight, ymax);
+    xmin = Maximum<int>(0, xmin);
+    xmin = Minimum<int>(imgWidth, xmin);
+    ymin = Maximum<int>(0, ymin);
+    ymin = Minimum<int>(imgHeight, ymin);
+    xmax = Maximum<int>(0, xmax);
+    xmax = Minimum<int>(imgWidth, xmax);
+    ymax = Maximum<int>(0, ymax);
+    ymax = Minimum<int>(imgHeight, ymax);
     int width = xmax - xmin;
     int height = ymax - ymin;  
     return cv::Rect(xmin, ymin, width, height);
@@ -273,7 +338,12 @@ void PostProcess(std::vector< caffe::Blob< float >* > &outputs, std::vector<ObjI
     std::vector<int> indices;  // indices of indexs, boxes and scores after nms
     std::cout << "do nms..." << std::endl;
     if (IS_NMS) {
-        cv::dnn::NMSBoxes(boxesNew, scoresNew, SCORE_THRESHOLD, NMS_THRESHOLD, indices);
+        // cv::dnn::NMSBoxes(boxesNew, scoresNew, SCORE_THRESHOLD, NMS_THRESHOLD, indices);
+        NMS(boxesNew, scoresNew, SCORE_THRESHOLD, NMS_THRESHOLD);
+        for(int i = 0; i < boxesNew.size(); ++i){
+            if(scoresNew[i] != 0)
+                indices.push_back(i);
+        }
     } 
     else {
         for(int i = 0; i < indexesNew.size(); ++i) indices.push_back(i);
