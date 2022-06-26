@@ -20,6 +20,6 @@ https://github.com/xxradon/PytorchToCaffe
 2. Use CMake to build
 ## MobileNetV2-SSD Caffe Pretrained Model (on VOC2007)
 ```
-Link: https://pan.baidu.com/s/1wLkUGZkQXqjmk0NXXPkOpg   
-Password: zl5v   
+Link: https://pan.baidu.com/s/1YcQXbtv7io8F_vDbdjZSzg 
+Password: 0jv0 
 ```
